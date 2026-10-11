@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research Report: Learning to Dock a Pallet Truck from One Camera (SmolVLA) | Abhinav Joshi</title>
+  <meta name="description" content="Mini Research Report: Learning to dock a pallet truck from one camera: imitating a privileged expert with a vision-language-action policy in Isaac Sim.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f3efe5;
+      --ink: #182527;
+      --muted: #66706c;
+      --line: rgba(24, 37, 39, 0.2);
+      --acid: #e6ff58;
+      --orange: #ff5b35;
+      --cyan: #83ddd0;
+      --max-width: 1440px;
+      --pad: clamp(1.25rem, 4vw, 4.5rem);
+      --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+      --display: "Arial Black", "Helvetica Neue", sans-serif;
+      --mono: "JetBrains Mono", "Courier New", Courier, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    .brief-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 99;
+      background: rgba(243, 239, 229, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--ink);
+      padding: 0.9rem 0;
+    }
+    .brief-nav-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brief-back-btn {
+      background: var(--ink);
+      color: var(--acid);
+      border: 1px solid var(--ink);
+      padding: 0.5rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 3px 3px 0 var(--ink);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      cursor: pointer;
+    }
+    .brief-back-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 var(--ink);
+      background: #0e1719;
+    }
+    .brief-badge {
+      background: var(--acid);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--ink);
+    }
+    .section-shell {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+    }
+    .section-kicker {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin: 0 0 0.5rem 0;
+    }
+    .brief-hero {
+      padding-top: 3.5rem;
+      padding-bottom: 2rem;
+    }
+    .brief-title {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4.5vw, 3.6rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin: 0.8rem 0;
+    }
+    .brief-subtitle {
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      color: #3b4d4f;
+      margin-top: 0;
+      max-width: 980px;
+    }
+    .brief-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      background: var(--ink);
+      color: #fff;
+      padding: 1.8rem;
+      border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 rgba(24, 37, 39, 0.4);
+      margin: 2rem 0;
+    }
+    @media (max-width: 860px) {
+      .brief-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 500px) {
+      .brief-metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .metric-val {
+      font-size: 2.4rem;
+      font-family: var(--mono);
+      font-weight: 900;
+      line-height: 1;
+      display: block;
+    }
+    .metric-lbl {
+      color: #c5ded8;
+      font-size: 0.74rem;
+      font-family: var(--mono);
+      display: block;
+      margin-top: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .insight-card {
+      background: #ffffff;
+      border: 2px solid var(--ink);
+      padding: 1.6rem;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .insight-card h3 {
+      font-family: var(--display);
+      font-size: 1.25rem;
+      margin: 0.6rem 0;
+    }
+    .insight-card p {
+      font-size: 0.9rem;
+      color: #334446;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .doc-viewer-wrap {
+      background: #0a1416;
+      border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+    }
+    .doc-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #04090a;
+      border: 1px solid rgba(131, 221, 208, 0.3);
+      padding: 0.8rem 1.2rem;
+      margin-bottom: 1.2rem;
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .page-stage {
+      display: flex;
+      justify-content: center;
+      background: #040809;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    .page-stage img {
+      max-width: 100%;
+      height: auto;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .page-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 1.2rem;
+      padding: 0.6rem;
+      background: #060e10;
+    }
+    .page-picker button {
+      width: 36px;
+      height: 32px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 800;
+      border: 1px solid rgba(131,221,208,0.2);
+      background: #0d1a1c;
+      color: #cde2de;
+      cursor: pointer;
+    }
+    .page-picker button.active {
+      background: var(--acid);
+      color: var(--ink);
+      border: 2px solid var(--acid);
+    }
+    .brief-footer-card {
+      margin: 4rem 0 3rem 0;
+      background: var(--ink);
+      color: #fff;
+      padding: 2.5rem;
+      border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="brief-navbar" aria-label="Report navigation">
+    <div class="brief-nav-container">
+      <a href="/#work" class="brief-back-btn">
+        ← BACK TO SELECTED WORK
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 0.8rem;">
+        <span class="brief-badge">RESEARCH REPORT // ISAAC SIM</span>
+        <span style="font-family: var(--mono); font-size: 0.72rem; color: var(--ink); font-weight: 700;">
+          SmolVLA 450M · 94% Docking
+        </span>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <a
+          href="/assets/vla_dock/vla_dock_report.pdf"
+          target="_blank"
+          rel="noreferrer"
+          class="brief-back-btn"
+          style="background: #182527; color: #ffffff;"
+        >
+          ↗ OPEN PDF
+        </a>
+        <a
+          href="/assets/vla_dock/vla_dock_report.pdf"
+          download="VLA_Pallet_Truck_Docking_Report.pdf"
+          class="brief-back-btn"
+          style="background: var(--acid); color: var(--ink);"
+        >
+          ⬇ DOWNLOAD (882 KB)
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section-shell">
+    <!-- Hero Header -->
+    <header class="brief-hero">
+      <p class="section-kicker">AGILE AMR PROJECT // MINI RESEARCH REPORT · SIMULATION EVALUATION</p>
+      <h1 class="brief-title">
+        Learning to Dock a Pallet Truck<br />from One Camera
+      </h1>
+      <p class="brief-subtitle">
+        Imitating a privileged expert with a 450M vision-language-action policy in Isaac Sim —
+        achieving 94% closed-loop success from a single forward-facing RGB camera without runtime pose estimation.
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1.2rem; font-family: var(--mono); font-size: 0.76rem; color: var(--muted);">
+        <span>AUTHOR: <strong>Abhinav Joshi</strong></span>
+        <span>·</span>
+        <span>SIMULATOR: <strong>NVIDIA Isaac Sim 6.0.1 / Isaac Lab</strong></span>
+        <span>·</span>
+        <span>STATUS: <strong>Closed-Loop 128-Start Benchmark (v4.1)</strong></span>
+      </div>
+    </header>
+
+    <!-- Metrics Grid -->
+    <section class="brief-metrics-grid">
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--acid);">94%</span>
+        <span class="metric-lbl">CLOSED-LOOP SUCCESS (41% → 94% OVER 7 GENS)</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--cyan);">19 s</span>
+        <span class="metric-lbl">MEDIAN DOCKING TIME (EXPERT: 18 s)</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--acid);">0</span>
+        <span class="metric-lbl">STALL JAMS IN 128 TEST RUNS (v4.1)</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--orange);">450M</span>
+        <span class="metric-lbl">SMOLVLA + 98M FLOW ACTION EXPERT</span>
+      </div>
+    </section>
+
+    <!-- Key Diagnoses -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">CRITICAL EXPERIMENTAL FINDINGS</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.2rem 0 1.5rem 0;">
+        Closed-Loop Diagnoses That Unlocked 94% Reliability
+      </h2>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        <article class="insight-card">
+          <span style="background: var(--orange); color: #fff; font-family: var(--mono); font-size: 0.62rem; font-weight: 800; padding: 0.2rem 0.5rem; display: inline-block;">
+            DIAGNOSIS 01 · 41% → 66%
+          </span>
+          <h3>Hiding Velocity Eliminates Copycat Causal Confusion</h3>
+          <p>
+            Analysing failure videos revealed the policy stalled whenever it stopped: observing near-zero
+            traction wheel velocity led it to predict continued zero velocity ("stationary, therefore stay stationary").
+            Completely withholding velocity proprioception forced the model to infer motion intention from sequential visual
+            observations and steering angle, surging success by <strong>+25 percentage points</strong>.
+          </p>
+        </article>
+
+        <article class="insight-card">
+          <span style="background: var(--cyan); color: var(--ink); font-family: var(--mono); font-size: 0.62rem; font-weight: 800; padding: 0.2rem 0.5rem; display: inline-block;">
+            DIAGNOSIS 02 · 66% → 94%
+          </span>
+          <h3>Privileged Expert Redesign for Decisive Recoveries</h3>
+          <p>
+            The original expert triggered subtle, ambiguous micro-corrections whenever lateral error drifted by 2 cm.
+            Because the monocular camera could not resolve such subtle offsets, the cloned policy became hesitant.
+            Broadening alignment bands to pocket tolerance (4 cm / 3°) and instituting decisive, high-yaw-rate pivot maneuvers
+            boosted closed-loop performance to <strong>94% (120 / 128 starts)</strong> with zero jams.
+          </p>
+        </article>
+
+        <article class="insight-card">
+          <span style="background: var(--acid); color: var(--ink); font-family: var(--mono); font-size: 0.62rem; font-weight: 800; padding: 0.2rem 0.5rem; display: inline-block;">
+            MODEL ARCHITECTURE
+          </span>
+          <h3>SmolVLA + 98M Flow-Matching Action Expert</h3>
+          <p>
+            Operates at 20 Hz from 256×144 scaled RGB images. Truncated SmolVLM2 (16 layers, 350M parameters)
+            processes image tokens and the frozen instruction prompt "dock into the pallet". A dedicated 98M parameter action expert
+            generates continuous 2-DoF control commands [steering angle target δ, wheel speed u] via conditional flow matching.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Document Viewer -->
+    <section id="report-document" style="margin: 4rem 0;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--ink); padding-bottom: 1rem;">
+        <div>
+          <p class="section-kicker">COMPLETE 14-PAGE RESEARCH DOCUMENT</p>
+          <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.2rem 0 0 0;">
+            Full Technical Report Inspection
+          </h2>
+        </div>
+
+        <div style="display: flex; gap: 0.6rem; align-items: center;">
+          <a
+            href="/assets/vla_dock/vla_dock_report.pdf"
+            download="VLA_Pallet_Truck_Docking_Report.pdf"
+            class="brief-back-btn"
+            style="background: var(--acid); color: var(--ink); font-size: 0.72rem;"
+          >
+            ⬇ PDF (882 KB)
+          </a>
+        </div>
+      </div>
+
+      <div class="doc-viewer-wrap">
+        <div class="doc-toolbar">
+          <div>
+            <span id="page-counter" style="color: var(--acid); font-weight: 800;">PAGE 01 / 14</span>
+            <span id="page-title" style="margin-left: 1rem; color: #c5ded8;">Title, Abstract & Introduction</span>
+          </div>
+
+          <div style="display: flex; gap: 0.6rem;">
+            <button
+              type="button"
+              id="prev-page-btn"
+              style="background: var(--ink); color: var(--acid); border: 1px solid rgba(131,221,208,0.3); padding: 0.4rem 0.8rem; font-family: var(--mono); font-size: 0.72rem; font-weight: 800; cursor: pointer;"
+            >
+              ← PREV PAGE
+            </button>
+            <button
+              type="button"
+              id="next-page-btn"
+              style="background: var(--ink); color: var(--acid); border: 1px solid rgba(131,221,208,0.3); padding: 0.4rem 0.8rem; font-family: var(--mono); font-size: 0.72rem; font-weight: 800; cursor: pointer;"
+            >
+              NEXT PAGE →
+            </button>
+          </div>
+        </div>
+
+        <div class="page-stage">
+          <img id="active-page-img" src="/assets/vla_dock/report_pages/page-01.png" alt="Report Page 1">
+        </div>
+
+        <div class="page-picker" id="page-picker"></div>
+      </div>
+    </section>
+
+    <!-- Return Card -->
+    <div class="brief-footer-card">
+      <div>
+        <p class="section-kicker" style="color: var(--acid); margin: 0 0 0.4rem 0;">EXPLORE MORE SELECTED WORK</p>
+        <h3 style="font-family: var(--display); font-size: 1.6rem; margin: 0;">
+          Return to Autonomous Systems &amp; Whole-Body Deployments.
+        </h3>
+      </div>
+      <a href="/#work" class="brief-back-btn" style="background: var(--acid); color: var(--ink); font-size: 0.86rem; padding: 0.8rem 1.6rem;">
+        ← Return to Selected Work
+      </a>
+    </div>
+  </main>
+
+  <script>
+    const titles = [
+      'Title, Abstract & Introduction // Vision-Language-Action Framing',
+      'Task Definition & Tricycle AMR Simulation Platform in Isaac Sim',
+      'Privileged Expert & DART-style Noise Injected Demonstrations',
+      'SmolVLA 450M Architecture & Flow-Matching Action Expert',
+      'Evaluation Protocol // 128 Fixed Random Starts Benchmark',
+      'Ablation 1 // Velocity Proprioception Copycat Diagnosis (41% → 66%)',
+      'Ablation 2 // Expert Maneuver Redesign & Decisive Fixes (66% → 94%)',
+      'Closed-Loop Trajectory Comparisons & Convergence Metrics',
+      'Latency-Aware Inference & 20 Hz Control Loop Timings',
+      'Zero-Jam Reliability Analysis & Collision Free Entry Bounds',
+      'Gated Hardware Deployment Path & Safety Interlocks',
+      'Related Work // Classical vs Neural End-to-End Docking',
+      'Discussion, Failure Cases & Language Conditioning Roadmap',
+      'Appendix // Hyperparameters, Loss Curves & Simulation Setup',
+    ];
+
+    let currentPage = 1;
+    const totalPages = 14;
+
+    const counter = document.getElementById('page-counter');
+    const titleEl = document.getElementById('page-title');
+    const imgEl = document.getElementById('active-page-img');
+    const prevBtn = document.getElementById('prev-page-btn');
+    const nextBtn = document.getElementById('next-page-btn');
+    const picker = document.getElementById('page-picker');
+
+    function updatePage(p) {
+      if (p < 1 || p > totalPages) return;
+      currentPage = p;
+      const pad = String(p).padStart(2, '0');
+      imgEl.src = `/assets/vla_dock/report_pages/page-${pad}.png`;
+      imgEl.alt = titles[p - 1];
+      counter.textContent = `PAGE ${pad} / 14`;
+      titleEl.textContent = titles[p - 1];
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+
+      document.querySelectorAll('.page-picker button').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx + 1 === currentPage);
+      });
+    }
+
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = i;
+      if (i === 1) btn.classList.add('active');
+      btn.title = titles[i - 1];
+      btn.addEventListener('click', () => updatePage(i));
+      picker.appendChild(btn);
+    }
+
+    prevBtn.addEventListener('click', () => updatePage(currentPage - 1));
+    nextBtn.addEventListener('click', () => updatePage(currentPage + 1));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') updatePage(currentPage - 1);
+      if (e.key === 'ArrowRight') updatePage(currentPage + 1);
+    });
+  </script>
+</body>
+</html>

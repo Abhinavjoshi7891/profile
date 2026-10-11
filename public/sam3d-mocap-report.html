@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technical Report: SAM 3D Body Video Motion Capture System | Abhinav Joshi</title>
+  <meta name="description" content="A research-grade computer vision and kinematics pipeline coupling Meta SAM 3D Body (DINOv3), SAM3, MoGe metric depth, and Rerun for 3D human motion capture.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f3efe5;
+      --ink: #182527;
+      --muted: #66706c;
+      --line: rgba(24, 37, 39, 0.2);
+      --acid: #e6ff58;
+      --orange: #ff5b35;
+      --cyan: #83ddd0;
+      --max-width: 1440px;
+      --pad: clamp(1.25rem, 4vw, 4.5rem);
+      --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+      --display: "Arial Black", "Helvetica Neue", sans-serif;
+      --mono: "JetBrains Mono", "Courier New", Courier, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    .brief-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 99;
+      background: rgba(243, 239, 229, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--ink);
+      padding: 0.9rem 0;
+    }
+    .brief-nav-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brief-back-btn {
+      background: var(--ink);
+      color: var(--acid);
+      border: 1px solid var(--ink);
+      padding: 0.5rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 3px 3px 0 var(--ink);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      cursor: pointer;
+    }
+    .brief-back-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 var(--ink);
+      background: #0e1719;
+    }
+    .brief-badge {
+      background: var(--acid);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--ink);
+    }
+    .section-shell {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+    }
+    .section-kicker {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin: 0 0 0.5rem 0;
+    }
+    .brief-hero {
+      padding-top: 3.5rem;
+      padding-bottom: 2rem;
+    }
+    .brief-title {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4.5vw, 3.6rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin: 0.8rem 0;
+    }
+    .brief-subtitle {
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      color: #3b4d4f;
+      margin-top: 0;
+      max-width: 980px;
+    }
+    .brief-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      background: var(--ink);
+      color: #fff;
+      padding: 1.8rem;
+      border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 rgba(24, 37, 39, 0.4);
+      margin: 2rem 0;
+    }
+    @media (max-width: 860px) {
+      .brief-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 500px) {
+      .brief-metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .metric-val {
+      font-size: 2.4rem;
+      font-family: var(--mono);
+      font-weight: 900;
+      line-height: 1;
+      display: block;
+    }
+    .metric-lbl {
+      color: #c5ded8;
+      font-size: 0.74rem;
+      font-family: var(--mono);
+      display: block;
+      margin-top: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .insight-card {
+      background: #ffffff;
+      border: 2px solid var(--ink);
+      padding: 1.6rem;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .insight-card h3 {
+      font-family: var(--display);
+      font-size: 1.25rem;
+      margin: 0.6rem 0;
+    }
+    .insight-card p {
+      font-size: 0.9rem;
+      color: #334446;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .brief-footer-card {
+      margin: 4rem 0 3rem 0;
+      background: var(--ink);
+      color: #fff;
+      padding: 2.5rem;
+      border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+      background: #ffffff;
+    }
+    .spec-table th, .spec-table td {
+      border: 1px solid var(--ink);
+      padding: 0.8rem 1rem;
+      text-align: left;
+    }
+    .spec-table th {
+      background: var(--ink);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.05em;
+    }
+    .terminal-code {
+      background: #060d0e;
+      color: #83ddd0;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      padding: 1.2rem;
+      border: 2px solid var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="brief-navbar" aria-label="Technical report navigation">
+    <div class="brief-nav-container">
+      <a href="/#work" class="brief-back-btn">
+        ← BACK TO SELECTED WORK
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+        <span class="brief-badge">META SAM 3D BODY · DINOv3 + MHR</span>
+        <span style="font-family: var(--mono); font-size: 0.72rem; color: var(--ink); font-weight: 700;">
+          18,439 Vertices · 127 Joints · 8GB VRAM Optimized
+        </span>
+      </div>
+
+      <a
+        href="https://github.com/Abhinavjoshi7891"
+        target="_blank"
+        rel="noreferrer"
+        class="brief-back-btn"
+        style="background: var(--acid); color: var(--ink);"
+      >
+        GitHub Repository ↗
+      </a>
+    </div>
+  </nav>
+
+  <main class="section-shell">
+    <!-- Hero Header -->
+    <header class="brief-hero">
+      <p class="section-kicker">COMPUTER VISION &amp; BIOMECHANICS // TECHNICAL REPORT</p>
+      <h1 class="brief-title">
+        SAM 3D Body Video Motion Capture System
+      </h1>
+      <p class="brief-subtitle">
+        A research-grade computer vision and kinematics pipeline designed to extract dense 3D human body and hand motion capture (mocap) from standard 2D monocular and multi-view video sequences — coupling Meta's SAM 3D Body (DINOv3) with SAM 3 promptable video segmentation, MoGe metric depth estimation, and interactive Rerun 3D spatial streaming.
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1.2rem; font-family: var(--mono); font-size: 0.76rem; color: var(--muted);">
+        <span>RESEARCHER: <strong>Abhinav Joshi</strong></span>
+        <span>·</span>
+        <span>FOUNDATION MODELS: <strong>Meta SAM 3D Body (DINOv3) + SAM 3 + MoGe Depth</strong></span>
+        <span>·</span>
+        <span>KINEMATICS: <strong>MHR (127 Joints) + SMPL-X Compatible</strong></span>
+      </div>
+    </header>
+
+    <!-- Metrics Grid -->
+    <section class="brief-metrics-grid">
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--acid);">18,439</span>
+        <span class="metric-lbl">DENSE 3D MESH VERTICES</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--cyan);">127</span>
+        <span class="metric-lbl">MHR KINEMATIC JOINTS</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--orange);">8 GB</span>
+        <span class="metric-lbl">VRAM OPTIMIZED (RTX 4060)</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: #ffffff;">4 FORMATS</span>
+        <span class="metric-lbl">NOKOV · OPENSIM · BLENDER · RERUN</span>
+      </div>
+    </section>
+
+    <!-- Video Showcase Section with Switcher -->
+    <section style="margin: 3.5rem 0;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem; border-bottom: 2px solid var(--ink); padding-bottom: 0.8rem;">
+        <div>
+          <p class="section-kicker">MOCAP RECONSTRUCTION CAPTURES</p>
+          <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.2rem 0 0 0;">
+            Monocular Video to 3D Biomechanical Kinematics
+          </h2>
+        </div>
+
+        <div style="display: inline-flex; border: 1px solid var(--ink); background: #fff; padding: 2px;">
+          <button
+            type="button"
+            id="btn-clip-boxing"
+            style="padding: 0.5rem 1rem; font-family: var(--mono); font-size: 0.76rem; font-weight: 800; border: none; cursor: pointer; background: var(--ink); color: var(--acid);"
+          >
+            🥊 Clip 1: Boxing Combat Mocap
+          </button>
+          <button
+            type="button"
+            id="btn-clip-multiobj"
+            style="padding: 0.5rem 1rem; font-family: var(--mono); font-size: 0.76rem; font-weight: 800; border: none; cursor: pointer; background: transparent; color: var(--ink);"
+          >
+            🏒 Clip 2: Multi-Object Track (Athlete + Prop)
+          </button>
+        </div>
+      </div>
+
+      <div style="background: #060d0e; border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1.2rem; background: #0d1a1c; border-bottom: 1px solid rgba(131,221,208,0.25);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+            <span id="video-bar-title" style="font-family: var(--mono); font-size: 0.72rem; color: #cde2de; margin-left: 8px; font-weight: 700;">
+              SAM_3D_BODY // BOXING STRIKE KINEMATICS &amp; 18,439-VERTEX MESH RECONSTRUCTION
+            </span>
+          </div>
+          <span id="video-telemetry-badge" style="font-family: var(--mono); font-size: 0.66rem; color: var(--acid); background: rgba(230,255,88,0.15); padding: 0.2rem 0.5rem; border: 1px solid rgba(230,255,88,0.3); font-weight: 800;">
+            18,439 VERTICES · SAVGOL FILTERED
+          </span>
+        </div>
+
+        <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;">
+          <video
+            id="sam3d-main-video"
+            src="assets/projects/sam3d_boxing_mocap.mp4"
+            autoplay
+            loop
+            muted
+            controls
+            playsinline
+            style="width: 100%; height: 100%; object-fit: contain; display: block;"
+          ></video>
+        </div>
+
+        <div style="padding: 1.2rem; background: #081315; border-top: 1px solid rgba(131,221,208,0.2); color: #cde2de;">
+          <p id="video-caption-p" style="margin: 0; font-size: 0.88rem; line-height: 1.6;">
+            <strong>Boxing Combat Reconstruction:</strong> Full-body monocular 3D tracking during explosive punches. Savitzky-Golay polynomial temporal smoothing (window 7) preserves sudden strike velocity peaks without foot sliding or joint jitter. Overlaid with 18,439-vertex shaded mesh, joint skeleton, and camera orbit.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Executive Summary Section -->
+    <section style="margin: 3.5rem 0;">
+      <div class="insight-card" style="border-left: 6px solid var(--acid);">
+        <p class="section-kicker">EXECUTIVE SUMMARY</p>
+        <h2 style="font-family: var(--display); font-size: 1.8rem; margin: 0.4rem 0 1rem 0;">
+          Bridging Raw Monocular Footage to Biomechanical Ground Truth
+        </h2>
+        <p style="font-size: 0.98rem; line-height: 1.7; color: #233436; margin-bottom: 1rem;">
+          The <strong>SAM 3D Body Video Mocap</strong> project is a research-grade computer vision and kinematics pipeline designed to extract 3D human body and hand motion capture (mocap) from standard 2D monocular and multi-view video sequences.
+        </p>
+        <p style="font-size: 0.98rem; line-height: 1.7; color: #233436; margin-bottom: 0;">
+          The system couples Meta's <strong>SAM 3D Body (DINOv3)</strong> foundation model with <strong>SAM 3</strong> promptable video segmentation, <strong>MoGe</strong> metric depth estimation, and the <strong>Rerun</strong> interactive 3D spatial visualization engine. It bridges raw video footage to biomechanically accurate 3D meshes (<strong>18,439 vertices</strong>) and hierarchical skeleton kinematic models (<strong>127 joints</strong>), providing export formats compatible with <strong>Nokov</strong>, <strong>OpenSim</strong>, and <strong>Blender</strong>.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 1: System Architecture & 5-Stage Data Flow -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">01 // SYSTEM ARCHITECTURE</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.5rem 0;">
+        5-Stage Kinematics Pipeline &amp; Data Flow
+      </h2>
+      <p style="font-size: 0.95rem; color: #3b4d4f; max-width: 980px; margin-bottom: 2rem;">
+        The project is structured into three processing stages with dedicated memory management for constrained GPU environments (e.g., 8GB VRAM). The data flows deterministically from video frames to multi-format kinematic deliverables:
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem;">
+        <div class="insight-card" style="border-top: 4px solid var(--orange);">
+          <span style="font-family: var(--mono); font-size: 0.7rem; font-weight: 800; color: var(--orange);">STAGE 1</span>
+          <h3>Input Modalities</h3>
+          <p>• Raw RGB Video (.mp4 / .avi / .mov)<br>• Text Prompts (e.g., 'person')<br>• Interactive 2D Point Clicks<br>• Model Checkpoints (DINOv3, MHR, SAM3, MoGe)</p>
+        </div>
+
+        <div class="insight-card" style="border-top: 4px solid var(--cyan);">
+          <span style="font-family: var(--mono); font-size: 0.7rem; font-weight: 800; color: #028270;">STAGE 2</span>
+          <h3>Tracking &amp; Segmentation</h3>
+          <p>• ViTDet / SAM3 Human Detection<br>• Zero-shot Multi-Object Tracking<br>• Point-Prompted Prop Masking<br>• CPU Detector Offloading</p>
+        </div>
+
+        <div class="insight-card" style="border-top: 4px solid var(--ink);">
+          <span style="font-family: var(--mono); font-size: 0.7rem; font-weight: 800; color: var(--ink);">STAGE 3</span>
+          <h3>3D Body Estimation</h3>
+          <p>• SAM 3D Body (DINOv3 Backbone)<br>• MHR Forward Kinematics (127 Joints)<br>• 18,439-Vertex Surface Meshes<br>• MoGe Dense Metric Depth</p>
+        </div>
+
+        <div class="insight-card" style="border-top: 4px solid var(--acid);">
+          <span style="font-family: var(--mono); font-size: 0.7rem; font-weight: 800; color: #5a7300;">STAGE 4</span>
+          <h3>Temporal Smoothing</h3>
+          <p>• Savitzky-Golay (Savgol) Polynomials<br>• Preserves Athletic Velocity Spikes<br>• Gaussian Filtering for Organic Walk<br>• Foot Contact Ground Clamping</p>
+        </div>
+
+        <div class="insight-card" style="border-top: 4px solid var(--ink); background: #0b181a; color: #fff;">
+          <span style="font-family: var(--mono); font-size: 0.7rem; font-weight: 800; color: var(--acid);">STAGE 5</span>
+          <h3 style="color: #fff;">Outputs &amp; Downstream</h3>
+          <p style="color: #cde2de;">• Rendered Mocap Overlay Video<br>• Interactive Rerun 3D Stream (.rrd)<br>• Nokov 127-Joint Biomech CSVs<br>• OpenSim &amp; Blender Skeletal Rigs</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Inputs & Prerequisites -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">02 // INPUT SPECIFICATIONS</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.5rem 0;">
+        Inputs, Prompts &amp; Foundation Models
+      </h2>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div class="insight-card">
+          <h3>2.1 Primary Video &amp; Prompt Inputs</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.7; color: #334446; margin: 0.5rem 0 0 0;">
+            <li><strong>Video Media:</strong> Standard monocular video files (.mp4, .avi, .mov) recorded at 24–60 fps. Multi-view inputs are supported via multi-camera image folders or .rrd recordings (e.g., HoCap dataset).</li>
+            <li><strong>Text Prompts:</strong> Zero-shot prompts (e.g. <code>--text "person"</code>) fed to SAM3 video tracking for autonomous athlete bounding.</li>
+            <li><strong>Interactive Point Clicks:</strong> Point-Video-Segment mode (<code>process_video_pvs_multiobj.py</code>) to track persons and handheld objects (such as bats or hockey sticks) simultaneously.</li>
+          </ul>
+        </div>
+
+        <div class="insight-card">
+          <h3>2.2 Model Weights &amp; Checkpoints</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.7; color: #334446; margin: 0.5rem 0 0 0;">
+            <li><strong>SAM 3D Body (DINOv3):</strong> <code>facebook/sam-3d-body-dinov3</code> backbone and regression heads estimating 3D camera translation, mesh vertices, and MHR joints.</li>
+            <li><strong>MHR Kinematic Model:</strong> <code>assets/mhr_model.pt</code> containing Meta Human Representation parametric skeleton definitions.</li>
+            <li><strong>SAM 3 Video Tracker:</strong> <code>facebook/sam3</code> sequential multi-object and promptable segmentation engine.</li>
+            <li><strong>MoGe V1 Depth Predictor:</strong> Monocular metric/relative depth model for background/foreground 3D scene point clouds.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Outputs & Data Artifacts -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">03 // DELIVERABLES &amp; TELEMETRY</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.5rem 0;">
+        Outputs, Data Structures &amp; Research CSVs
+      </h2>
+
+      <div class="insight-card" style="margin-bottom: 2rem;">
+        <h3>3.1 Visual &amp; Interactive Outputs</h3>
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Output Artifact</th>
+              <th>Description</th>
+              <th>Destination</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Rendered Video (.mp4)</strong></td>
+              <td>Source video overlaid with 3D shaded body mesh, joint skeleton, and camera trajectory.</td>
+              <td><code>output_dir/&lt;video_name&gt;_mocap.mp4</code></td>
+            </tr>
+            <tr>
+              <td><strong>Interactive Rerun Canvas (.rrd)</strong></td>
+              <td>Synchronized 2D video viewport alongside a 3D orbital viewport featuring shaded meshes, camera frustum, and dense depth point clouds.</td>
+              <td>Streamed live or saved to <code>.rrd</code></td>
+            </tr>
+            <tr>
+              <td><strong>Kinematic Plots (.png)</strong></td>
+              <td>Multi-axis plots of joint coordinates (e.g., left/right wrist punches in boxing) across time and 3D trajectory traces.</td>
+              <td><code>output_dir/&lt;video_name&gt;_trajectories.png</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div class="insight-card">
+          <h3>3.2 Raw Data Dumps (.pickle, .npz, .json)</h3>
+          <p style="font-size: 0.88rem; color: #556264; margin-bottom: 0.8rem;">Each frame records a structured telemetry dictionary for every detected individual:</p>
+          <div class="terminal-code" style="font-size: 0.74rem;">
+pred_vertices: (18439, 3) float32   # Dense 3D surface mesh
+pred_keypoints_3d: (70, 3) float32  # MHR70 landmark format
+pred_keypoints_2d: (70, 2) float32  # Projected image pixels
+pred_joint_coords: (127, 3) float32 # All 127 anatomical joints
+pred_global_rots: (127, 3, 3)       # Global rotation matrices
+body_pose_params / hand_pose_params # Latent posture vectors
+pred_cam_t: [tx, ty, tz]            # Camera translation
+focal_length: 1042.5 px             # Camera focal length
+bbox: [x1, y1, x2, y2, conf]        # 2D detection box
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <h3>3.3 Research-Grade CSV Exports</h3>
+          <p style="font-size: 0.88rem; color: #556264; margin-bottom: 0.8rem;">Implemented in <code>boxing_fullbody_mocap_export.py</code> and <code>export_mocap_complete.py</code>:</p>
+          <ul style="padding-left: 1.2rem; font-size: 0.84rem; line-height: 1.6; color: #334446; margin: 0;">
+            <li><code>&lt;video&gt;_keypoints_3d.csv</code>: Frame-by-frame 3D metric coordinates (x_m, y_m, z_m) for 70 landmarks.</li>
+            <li><code>&lt;video&gt;_joints_positions.csv</code>: Metric coordinates for all 127 SMPL-X/MHR skeletal bones.</li>
+            <li><code>&lt;video&gt;_rotations_quaternion.csv</code>: Normalized orientation quaternions (qw, qx, qy, qz) per joint for Nokov, OpenSim, and Blender rigs.</li>
+            <li><code>&lt;video&gt;_rotations_euler.csv</code>: Rotation angles expressed in Euler degrees (XYZ convention).</li>
+            <li><code>&lt;video&gt;_camera_params.csv</code>: Camera translation offsets and focal length per frame.</li>
+            <li><code>&lt;video&gt;_metadata.csv</code>: Per-frame timestamps and bounding boxes.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Codebase & Modules -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">04 // CODEBASE ARCHITECTURE</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.5rem 0;">
+        Pipeline Components &amp; Code Organization
+      </h2>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div class="terminal-code">
+sam-3d-body-video-mocap/
+├── video_mocap_pipeline.py          # Unified CLI pipeline
+├── rerun_visualizer.py              # Rerun SDK 2D/3D viewer
+├── depth_estimator.py               # MoGe metric depth map
+│
+├── process_boxing_views.py          # Multi-panel combat rendering
+├── boxing_fullbody_mocap_export.py  # Nokov-compatible 127-joint CSV
+├── analyze_hockey_multiobj.py       # Dual-entity athlete + stick
+├── process_video_pvs_multiobj.py    # Point-prompted SAM3 tracker
+├── process_video_sam3_pcs_seq.py    # Text-prompted with VRAM unload
+│
+├── sam-3d-body/                     # Meta SAM 3D Body (DINOv3 + MHR)
+│   ├── sam_3d_body/                 # Estimator, models, renderers
+│   └── notebook/                    # Setup utilities & helpers
+│
+└── sam3d-body-rerun/                # Pixi env, Gradio UI, multi-view
+    ├── tool/demo_mv_body.py         # Multi-view MHR optimization
+    ├── tool/demo_chunk_video.py     # Memory-efficient video chunking
+    └── src/sam3d_body/              # Package modules
+        </div>
+
+        <div class="insight-card">
+          <h3>Key Software Modules</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.88rem; line-height: 1.7; color: #334446; margin: 0.5rem 0 0 0;">
+            <li><strong>VideoMotionCapture:</strong> Core engine handling video decoding, model inference, temporal smoothing, data serialization, and video re-encoding.</li>
+            <li><strong>TemporalSmoother:</strong> Multi-method temporal filter:
+              <br>• <em>Gaussian Filtering:</em> Default for organic walking and conversation.
+              <br>• <em>Savitzky-Golay (Savgol):</em> Polynomial filtering preserving velocity peaks during high-speed actions (punches, athletic jumping).
+              <br>• <em>Moving Average:</em> Fast linear smoothing.
+            </li>
+            <li><strong>demo_mv_body.py:</strong> Differentiable multi-view optimization fusing multiple camera angles via 2D keypoint triangulation and L1 reprojection losses.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Hardware Optimization & VRAM Strategies -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">05 // HARDWARE TUNING</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.5rem 0;">
+        Memory Strategies for Constrained GPUs (8GB VRAM)
+      </h2>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem;">
+        <div class="insight-card" style="border-top: 4px solid var(--orange);">
+          <h3>CPU Detector Offloading</h3>
+          <p>In <code>video_mocap_pipeline.py</code>, if VRAM is &lt; 12 GB, the 2D detector (ViTDet) automatically offloads to CPU, conserving all GPU memory for the heavy SAM 3D Body foundation model.</p>
+        </div>
+
+        <div class="insight-card" style="border-top: 4px solid var(--cyan);">
+          <h3>Sequential Stage Pipeline</h3>
+          <p>Scripts like <code>process_video_sam3_pcs_sequential.py</code> run SAM3 video tracking first, export mask tracks to disk, call <code>torch.cuda.empty_cache()</code> and <code>gc.collect()</code>, then instantiate SAM 3D Body.</p>
+        </div>
+
+        <div class="insight-card" style="border-top: 4px solid var(--ink);">
+          <h3>Chunking &amp; Streaming</h3>
+          <p>In <code>sam3d-body-rerun</code>, <code>demo_chunk_video.py</code> and <code>demo_stream.py</code> process long videos in small overlapping blocks or frame-by-frame with constant <strong>O(1)</strong> GPU memory usage.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Standard Execution Workflows -->
+    <section style="margin: 3.5rem 0;">
+      <p class="section-kicker">06 // REPRODUCIBILITY &amp; WORKFLOWS</p>
+      <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.5rem 0;">
+        Standard Execution Workflows
+      </h2>
+
+      <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+        <div class="insight-card">
+          <span style="font-family: var(--mono); font-size: 0.72rem; color: var(--muted); font-weight: 700;">SCENARIO A</span>
+          <h3 style="margin-top: 0.2rem;">Standard Monocular Video Processing</h3>
+          <div class="terminal-code">
+python video_mocap_pipeline.py \
+    --video inputs/sample.mp4 \
+    --checkpoint ./checkpoints/sam-3d-body-dinov3/model.ckpt \
+    --output ./results \
+    --smooth_method savgol \
+    --smooth_window 7
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <span style="font-family: var(--mono); font-size: 0.72rem; color: var(--muted); font-weight: 700;">SCENARIO B</span>
+          <h3 style="margin-top: 0.2rem;">Depth-Enriched Interactive Inspection (Rerun)</h3>
+          <div class="terminal-code">
+# 1. Generate dense metric depth cloud
+python depth_estimator.py --video inputs/sample.mp4
+
+# 2. Launch interactive 3D spatial viewer
+python rerun_visualizer.py \
+    --video inputs/sample.mp4 \
+    --mocap results/sample_data.pickle \
+    --depth sample_depth_data.pkl
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <span style="font-family: var(--mono); font-size: 0.72rem; color: var(--muted); font-weight: 700;">SCENARIO C</span>
+          <h3 style="margin-top: 0.2rem;">Biomechanical Export for OpenSim / Blender</h3>
+          <div class="terminal-code">
+python boxing_fullbody_mocap_export.py \
+    --pkl results/sample_data.pickle \
+    --output ./biomech_exports \
+    --video_name athlete_trial_01
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Card -->
+    <div class="brief-footer-card">
+      <div>
+        <h3 style="font-family: var(--display); font-size: 1.6rem; margin: 0 0 0.5rem 0;">
+          Explore the SAM 3D Body Motion Capture Pipeline
+        </h3>
+        <p style="margin: 0; color: #a4beba; font-size: 0.88rem; max-width: 620px;">
+          Includes source video re-encoders, Nokov kinematic CSV exporters, Savitzky-Golay filters, and Rerun spatial streaming blueprints.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="/#work" class="brief-back-btn">
+          ← Back to Portfolio
+        </a>
+        <a
+          href="https://github.com/Abhinavjoshi7891"
+          target="_blank"
+          rel="noreferrer"
+          class="brief-back-btn"
+          style="background: var(--acid); color: var(--ink);"
+        >
+          View GitHub Repository ↗
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Video Clip Switcher
+    const btnBoxing = document.getElementById('btn-clip-boxing');
+    const btnMultiobj = document.getElementById('btn-clip-multiobj');
+    const video = document.getElementById('sam3d-main-video');
+    const barTitle = document.getElementById('video-bar-title');
+    const badge = document.getElementById('video-telemetry-badge');
+    const captionP = document.getElementById('video-caption-p');
+
+    btnBoxing.addEventListener('click', () => {
+      video.src = 'assets/projects/sam3d_boxing_mocap.mp4';
+      video.play().catch(() => {});
+      btnBoxing.style.background = 'var(--ink)';
+      btnBoxing.style.color = 'var(--acid)';
+      btnMultiobj.style.background = 'transparent';
+      btnMultiobj.style.color = 'var(--ink)';
+      barTitle.textContent = 'SAM_3D_BODY // BOXING STRIKE KINEMATICS & 18,439-VERTEX MESH RECONSTRUCTION';
+      badge.textContent = '18,439 VERTICES · SAVGOL FILTERED';
+      captionP.innerHTML = '<strong>Boxing Combat Reconstruction:</strong> Full-body monocular 3D tracking during explosive punches. Savitzky-Golay polynomial temporal smoothing (window 7) preserves sudden strike velocity peaks without foot sliding or joint jitter. Overlaid with 18,439-vertex shaded mesh, joint skeleton, and camera orbit.';
+    });
+
+    btnMultiobj.addEventListener('click', () => {
+      video.src = 'assets/projects/sam3d_multiobj_mocap.mp4';
+      video.play().catch(() => {});
+      btnMultiobj.style.background = 'var(--ink)';
+      btnMultiobj.style.color = 'var(--acid)';
+      btnBoxing.style.background = 'transparent';
+      btnBoxing.style.color = 'var(--ink)';
+      barTitle.textContent = 'SAM3_POINT_VIDEO_SEGMENT // MULTI-OBJECT ATHLETE + HANDHELD PROP TRACKING';
+      badge.textContent = 'DUAL-ENTITY TRACKING · 30 FPS';
+      captionP.innerHTML = '<strong>Multi-Object Promptable Tracking:</strong> Point-Video-Segment tracking segmenting human body kinematics together with handheld sports equipment. Handles severe visual occlusion and fast rotational dynamics with continuous ID preservation.';
+    });
+  </script>
+</body>
+</html>

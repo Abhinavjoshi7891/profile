@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradForklift" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="340" rx="12" fill="url(#bgGradForklift)"/>
+
+  <!-- Badges -->
+  <rect x="24" y="22" width="180" height="26" rx="13" fill="#6366f1" fill-opacity="0.25" stroke="#818cf8" stroke-width="1"/>
+  <text x="36" y="39" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="11" font-weight="600">VLA FOR FORKLIFT DOCKING</text>
+
+  <rect x="212" y="22" width="130" height="26" rx="13" fill="#059669" fill-opacity="0.25" stroke="#10b981" stroke-width="1"/>
+  <text x="224" y="39" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11" font-weight="600">ADDVERB RESEARCH</text>
+
+  <rect x="350" y="22" width="145" height="26" rx="13" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1"/>
+  <text x="362" y="39" fill="#7dd3fc" font-family="system-ui, sans-serif" font-size="11" font-weight="600">ZERO-SHOT POLICY</text>
+
+  <!-- Flow pipeline: Multimodal Inputs -> VLA Transformer -> Action Space -->
+  <!-- Box 1: Inputs -->
+  <g transform="translate(30, 80)">
+    <rect width="135" height="155" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <text x="12" y="24" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="600">MULTIMODAL INPUTS</text>
+    <rect x="12" y="36" width="111" height="28" rx="4" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+    <text x="18" y="54" fill="#e2e8f0" font-family="monospace" font-size="9.5">RGB-D Streams</text>
+    <rect x="12" y="72" width="111" height="28" rx="4" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+    <text x="18" y="90" fill="#e2e8f0" font-family="monospace" font-size="9.5">LiDAR Point Cloud</text>
+    <rect x="12" y="108" width="111" height="34" rx="4" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+    <text x="18" y="123" fill="#38bdf8" font-family="monospace" font-size="9">"Dock into Bay 04"</text>
+    <text x="18" y="135" fill="#64748b" font-family="monospace" font-size="8.5">Natural Language Task</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <line x1="175" y1="157" x2="205" y2="157" stroke="#818cf8" stroke-width="2.5"/>
+  <polygon points="208,157 199,152 199,162" fill="#818cf8"/>
+
+  <!-- Box 2: VLA Backbone -->
+  <g transform="translate(215, 80)">
+    <rect width="170" height="155" rx="8" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.8"/>
+    <text x="14" y="24" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="11" font-weight="600">VLA EMBODIED CORE</text>
+    <rect x="12" y="36" width="146" height="30" rx="4" fill="#312e81"/>
+    <text x="20" y="55" fill="#e0e7ff" font-family="monospace" font-size="9.5">Vision-Lang Tokenizer</text>
+    <rect x="12" y="74" width="146" height="32" rx="4" fill="#4338ca"/>
+    <text x="20" y="94" fill="#ffffff" font-family="monospace" font-size="9.5">Autoregressive / ACT</text>
+    <rect x="12" y="114" width="146" height="30" rx="4" fill="#312e81"/>
+    <text x="20" y="133" fill="#a5b4fc" font-family="monospace" font-size="9">Spatial Cross-Attention</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <line x1="395" y1="157" x2="425" y2="157" stroke="#10b981" stroke-width="2.5"/>
+  <polygon points="428,157 419,152 419,162" fill="#10b981"/>
+
+  <!-- Box 3: Safe Actions & Hardware Docking -->
+  <g transform="translate(435, 80)">
+    <rect width="135" height="155" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <text x="10" y="24" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="10.5" font-weight="600">ACTION &amp; SAFETY</text>
+    <rect x="10" y="36" width="115" height="28" rx="4" fill="#0f172a" stroke="#059669" stroke-width="0.8"/>
+    <text x="16" y="54" fill="#e2e8f0" font-family="monospace" font-size="9.5">Steering &amp; Drive [v, ω]</text>
+    <rect x="10" y="72" width="115" height="28" rx="4" fill="#0f172a" stroke="#059669" stroke-width="0.8"/>
+    <text x="16" y="90" fill="#e2e8f0" font-family="monospace" font-size="9.5">Fork Lift &amp; Tilt [z, θ]</text>
+    <rect x="10" y="108" width="115" height="34" rx="4" fill="#0f172a" stroke="#059669" stroke-width="0.8"/>
+    <text x="16" y="123" fill="#34d399" font-family="monospace" font-size="9">Safety Envelope Guard</text>
+    <text x="16" y="135" fill="#64748b" font-family="monospace" font-size="8.5">Sub-20ms CAN clamp</text>
+  </g>
+
+  <!-- Bottom Banner -->
+  <g transform="translate(30, 260)">
+    <rect width="540" height="58" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="16" y="22" fill="#94a3b8" font-family="monospace" font-size="10">Target: Unstructured Warehouse Logistics · Zero-Shot Generalization Across Dock Geometries</text>
+    <text x="16" y="44" fill="#c7d2fe" font-family="monospace" font-size="10">Poster &amp; Architecture Brief for PIs: Grounding Foundation Models into Heavy Industrial Actuation</text>
+  </g>
+</svg>

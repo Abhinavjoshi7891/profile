@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Recurrent Depth-Vision Local Planner for a Wheeled Humanoid | Abhinav Joshi</title>
+  <meta name="description" content="Technical report and design journey for Checkpoint MEM_GRU_model_6999 on the Dynamoid v1 wheeled humanoid platform in NVIDIA Isaac Lab.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f3efe5;
+      --ink: #182527;
+      --muted: #66706c;
+      --line: rgba(24, 37, 39, 0.2);
+      --acid: #e6ff58;
+      --orange: #ff5b35;
+      --cyan: #83ddd0;
+      --max-width: 1440px;
+      --pad: clamp(1.25rem, 4vw, 4.5rem);
+      --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+      --display: "Arial Black", "Helvetica Neue", sans-serif;
+      --mono: "JetBrains Mono", "Courier New", Courier, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    .brief-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 99;
+      background: rgba(243, 239, 229, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--ink);
+      padding: 0.9rem 0;
+    }
+    .brief-nav-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brief-back-btn {
+      background: var(--ink);
+      color: var(--acid);
+      border: 1px solid var(--ink);
+      padding: 0.5rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 3px 3px 0 var(--ink);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      cursor: pointer;
+    }
+    .brief-back-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 var(--ink);
+      background: #0e1719;
+    }
+    .brief-badge {
+      background: var(--acid);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--ink);
+    }
+    .section-shell {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+    }
+    .section-kicker {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin: 0 0 0.5rem 0;
+    }
+    .brief-hero {
+      padding-top: 3.5rem;
+      padding-bottom: 2rem;
+    }
+    .brief-title {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4.5vw, 3.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin: 0.8rem 0;
+    }
+    .brief-subtitle {
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      color: #3b4d4f;
+      margin-top: 0;
+      max-width: 980px;
+    }
+    .brief-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      background: var(--ink);
+      color: #fff;
+      padding: 1.8rem;
+      border: 2px solid var(--ink);
+      box-shadow: 4px 4px 0 rgba(24, 37, 39, 0.4);
+      margin: 2rem 0;
+    }
+    @media (max-width: 860px) {
+      .brief-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 500px) {
+      .brief-metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .metric-val {
+      font-size: 2.4rem;
+      font-family: var(--mono);
+      font-weight: 900;
+      line-height: 1;
+      display: block;
+    }
+    .metric-lbl {
+      color: #c5ded8;
+      font-size: 0.74rem;
+      font-family: var(--mono);
+      display: block;
+      margin-top: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .insight-card {
+      background: #ffffff;
+      border: 2px solid var(--ink);
+      padding: 1.6rem;
+      box-shadow: 3px 3px 0 var(--ink);
+      margin-bottom: 2rem;
+    }
+    .insight-card h3 {
+      font-family: var(--display);
+      font-size: 1.25rem;
+      margin: 0.6rem 0;
+    }
+    .insight-card p {
+      font-size: 0.9rem;
+      color: #334446;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+      background: #ffffff;
+    }
+    .spec-table th, .spec-table td {
+      border: 1px solid var(--ink);
+      padding: 0.8rem 1rem;
+      text-align: left;
+    }
+    .spec-table th {
+      background: var(--ink);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.05em;
+    }
+    .tab-btn {
+      padding: 0.65rem 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 800;
+      border: 2px solid var(--ink);
+      cursor: pointer;
+      background: #fff;
+      color: var(--ink);
+      transition: all 140ms ease;
+    }
+    .tab-btn.is-active {
+      background: var(--ink);
+      color: var(--acid);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="brief-navbar" aria-label="Technical report navigation">
+    <div class="brief-nav-container">
+      <a href="/#work" class="brief-back-btn">
+        ← BACK TO SELECTED WORK
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+        <span class="brief-badge">CHECKPOINT MEM_GRU_model_6999</span>
+        <span style="font-family: var(--mono); font-size: 0.72rem; color: var(--ink); font-weight: 700;">
+          86.9% Arrival · 11.3% Hits · 128-D GRU Memory · 120° Depth Only
+        </span>
+      </div>
+
+      <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+        <a
+          href="assets/reports/MEM_GRU_model_6999_report.pdf"
+          target="_blank"
+          rel="noreferrer"
+          class="brief-back-btn"
+          style="background: var(--acid); color: var(--ink);"
+        >
+          Evaluation PDF ↗
+        </a>
+        <a
+          href="assets/reports/MEM_GRU_model_6999_journey.pdf"
+          target="_blank"
+          rel="noreferrer"
+          class="brief-back-btn"
+          style="background: var(--ink); color: var(--acid);"
+        >
+          Design Journey PDF ↗
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section-shell">
+    <!-- Hero Header -->
+    <header class="brief-hero">
+      <p class="section-kicker">WHEELED HUMANOID // RECURRENT LOCAL PLANNER</p>
+      <h1 class="brief-title">
+        A Recurrent Depth-Vision Local Planner<br />for a Wheeled Humanoid
+      </h1>
+      <p class="brief-subtitle">
+        Every 50 ms, turning four depth frames, nine robot state numbers, and a 128-number GRU memory
+        into continuous forward speed and yaw rates that track global paths around walking pedestrians.
+        Trained in NVIDIA Isaac Lab with asymmetric actor-critic PPO on the Dynamoid v1 humanoid platform.
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1.2rem; font-family: var(--mono); font-size: 0.76rem; color: var(--muted);">
+        <span>RESEARCHER: <strong>Abhinav Joshi</strong></span>
+        <span>·</span>
+        <span>PLATFORM: <strong>Dynamoid v1 (133 kg Wheeled Humanoid)</strong></span>
+        <span>·</span>
+        <span>SENSOR: <strong>Femto Bolt 120° × 120° Depth (0.25–2.88 m)</strong></span>
+        <span>·</span>
+        <span>CHECKPOINT: <strong>MEM_GRU_model_6999</strong></span>
+      </div>
+    </header>
+
+    <!-- Metrics Grid -->
+    <section class="brief-metrics-grid">
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--acid);">86.9%</span>
+        <span class="metric-lbl">GOAL ARRIVAL (95% CI: 84.5–88.9)</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--cyan);">11.3%</span>
+        <span class="metric-lbl">PEDESTRIAN HITS (HALVED FROM 22.7%)</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: var(--orange);">128-D</span>
+        <span class="metric-lbl">RECURRENT GRU HIDDEN STATE</span>
+      </div>
+      <div class="brief-metric-item">
+        <span class="metric-val" style="color: #ffffff;">2.87M</span>
+        <span class="metric-lbl">PARAMETERS (CNN + GRU + MLP)</span>
+      </div>
+    </section>
+
+    <!-- Tab Navigation -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 2px solid var(--ink); padding-bottom: 0.8rem; flex-wrap: wrap;">
+      <button type="button" class="tab-btn is-active" id="btn-tab-paper">
+        📄 1. Technical Report (model_6999)
+      </button>
+      <button type="button" class="tab-btn" id="btn-tab-journey">
+        🗺️ 2. Design Journey (Aug – Oct 2026)
+      </button>
+      <button type="button" class="tab-btn" id="btn-tab-telemetry">
+        🎥 3. Evaluation Video Report (14 Episodes)
+      </button>
+    </div>
+
+    <!-- TAB 1: TECHNICAL REPORT -->
+    <div id="content-tab-paper">
+      <div class="insight-card" style="border-left: 6px solid var(--acid);">
+        <p class="section-kicker">ABSTRACT</p>
+        <h2 style="font-family: var(--display); font-size: 1.6rem; margin: 0.4rem 0 1rem 0;">
+          End-to-End Recurrent Local Planning under Severe Camera Blindness
+        </h2>
+        <p style="font-size: 0.96rem; line-height: 1.7; color: #233436;">
+          We train one neural network to act as the local planner of a wheeled humanoid. Every 50 ms it turns
+          four depth frames, nine numbers describing the robot and its route, and a 128-number memory into a
+          forward speed and a turn rate that follow a global path around walking pedestrians. The camera sees only
+          a 120° cone out to 2.88 m, so pedestrians routinely drop out of view just before they reach the robot.
+          Adding a GRU memory of those pedestrians, trained with an auxiliary "where were they?" loss, halved
+          pedestrian collisions in simulation (<strong>22.7% → 11.3%</strong>) and raised goal arrival from <strong>75.8% to 86.9%</strong>.
+          The policy steers around people at full speed; it does not choose to slow down or stop.
+        </p>
+      </div>
+
+      <section style="margin-bottom: 3rem;">
+        <p class="section-kicker">01 // PROBLEM &amp; SYSTEM SETTING</p>
+        <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.2rem 0;">
+          System Context &amp; Sensor Constraints
+        </h2>
+        <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1.5rem; align-items: start;">
+          <div class="insight-card">
+            <h3>Robot &amp; World Specification</h3>
+            <p style="font-size: 0.92rem; line-height: 1.6; color: #334446; margin-bottom: 0.8rem;">
+              The robot is a differential-drive base (wheel radius 0.075 m, wheelbase 0.372 m, body radius 0.607 m)
+              carrying a humanoid upper body. In the C++ stack its local planner has been MPPI; this policy takes over
+              the exact same role: <strong>route and obstacles in, (v, ω) out</strong>.
+            </p>
+            <p style="font-size: 0.92rem; line-height: 1.6; color: #334446;">
+              The training world is a walled corridor with a 10 m reference path and three pedestrians (radius 0.30 m)
+              walking toward the robot, either straight or with random speed (0–1.2 m/s) and heading (±35°).
+              They do not react to the robot. The policy runs at 20 Hz over 120 Hz physics, 64 robots in parallel,
+              episodes of at most 25 s.
+            </p>
+          </div>
+          <div style="background: #fff; border: 2px solid var(--ink); padding: 1rem; box-shadow: 3px 3px 0 var(--ink);">
+            <img src="assets/figures/model_6999/fig_system.png" alt="System context" style="width: 100%; height: auto; display: block;">
+            <span style="display: block; font-size: 0.72rem; font-family: var(--mono); color: var(--muted); margin-top: 0.6rem;">
+              FIG 1: System context — Route &amp; 120° depth camera in, (v, ω) out via wall-safety reflex.
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-bottom: 3rem;">
+        <p class="section-kicker">02 // ACTOR ARCHITECTURE &amp; METHOD</p>
+        <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.2rem 0;">
+          Observation Contract &amp; Neural Network Structure
+        </h2>
+        <div style="background: #fff; border: 2px solid var(--ink); padding: 1.2rem; box-shadow: 4px 4px 0 var(--ink); margin-bottom: 2rem;">
+          <img src="assets/figures/model_6999/fig_arch_actor.png" alt="Actor network architecture" style="width: 100%; height: auto; display: block;">
+          <span style="display: block; font-size: 0.72rem; font-family: var(--mono); color: var(--muted); margin-top: 0.6rem;">
+            FIG 2: Actor Architecture (2,875,452 parameters) — Depth stack → CNN → detached latent → GRU(256→128) → MLP head.
+          </span>
+        </div>
+      </section>
+
+      <section style="margin-bottom: 3rem;">
+        <p class="section-kicker">03 // EVALUATION OUTCOMES</p>
+        <h2 style="font-family: var(--display); font-size: 2rem; margin: 0.4rem 0 1.2rem 0;">
+          Benchmarking Across Checkpoint Generations
+        </h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <div style="background: #fff; border: 2px solid var(--ink); padding: 1rem; box-shadow: 3px 3px 0 var(--ink);">
+            <img src="assets/figures/model_6999/fig_outcomes.png" alt="Evaluation outcomes graph" style="width: 100%; height: auto; display: block;">
+            <span style="display: block; font-size: 0.72rem; font-family: var(--mono); color: var(--muted); margin-top: 0.6rem;">
+              FIG 3: Episode outcomes across models with 95% Wilson confidence intervals.
+            </span>
+          </div>
+          <div style="background: #fff; border: 2px solid var(--ink); padding: 1rem; box-shadow: 3px 3px 0 var(--ink);">
+            <img src="assets/figures/model_6999/fig_memory_skill.png" alt="Memory skill retention" style="width: 100%; height: auto; display: block;">
+            <span style="display: block; font-size: 0.72rem; font-family: var(--mono); color: var(--muted); margin-top: 0.6rem;">
+              FIG 4: Memory skill decay vs time out of view.
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 2: DESIGN JOURNEY -->
+    <div id="content-tab-journey" style="display: none;">
+      <div class="insight-card" style="border-left: 6px solid var(--cyan);">
+        <p class="section-kicker">CHRONOLOGICAL DISCOVERY LOG</p>
+        <h2 style="font-family: var(--display); font-size: 1.6rem; margin: 0.4rem 0 1rem 0;">
+          How model_6999 Was Built: From Static Clutter to a Remembering Local Planner
+        </h2>
+        <p style="font-size: 0.96rem; line-height: 1.7; color: #233436;">
+          The final policy (<code>MEM_GRU_model_6999</code>) is the fourth design, not the first.
+          Each earlier design failed in a way that told us what the next one needed. Below is the unvarnished
+          engineering journey across three months of simulation research.
+        </p>
+      </div>
+
+      <div class="insight-card">
+        <h3>The Four Development Eras</h3>
+        <table class="spec-table">
+          <thead>
+            <tr><th>Era</th><th>What We Built</th><th>What It Taught Us</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>1. Static clutter (Aug)</strong></td><td>RL policy on BARN-style box courses, LiDAR input</td><td>Static traversal plateaued at ~46% success; the real target was <em>dynamic</em> avoidance.</td></tr>
+            <tr><td><strong>2. Privileged teacher (Aug–early Sep)</strong></td><td>PPO teacher that sees pedestrians as a time-to-collision (TTC) scan → <code>model_699</code></td><td>TTC is the right language for risk; but a teacher that sees more than the camera cannot be distilled into a camera student.</td></tr>
+            <tr><td><strong>3. Rebuild (mid Sep)</strong></td><td>Policy = local planner inside global trajectory, end-to-end from depth, asymmetric critic → <code>SOLID_BASE_4499</code></td><td>The formulation and reward arithmetic were as wrong as the architecture; coverage is not the whole problem.</td></tr>
+            <tr><td><strong>4. Smooth, then remember (late Sep)</strong></td><td>Action-rate penalty → <code>5499</code>; GRU memory → <code>model_6999</code></td><td>Pedestrians leave the 120° view just before impact; spatial memory halves the collisions.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: VIDEO TELEMETRY -->
+    <div id="content-tab-telemetry" style="display: none;">
+      <div class="insight-card" style="border-left: 6px solid var(--orange);">
+        <p class="section-kicker">1080P SIMULATION &amp; DEPTH TENSOR RUNS</p>
+        <h2 style="font-family: var(--display); font-size: 1.6rem; margin: 0.4rem 0 0.8rem 0;">
+          14-Episode Complete Video Evaluation Benchmark
+        </h2>
+        <p style="font-size: 0.94rem; line-height: 1.6; color: #334446;">
+          High-definition synchronized recording featuring 11 successful goal arrivals and 3 pedestrian hit edge cases.
+        </p>
+      </div>
+
+      <div style="background: #060d0e; border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); overflow: hidden; margin-bottom: 2rem;">
+        <video src="assets/videos/model_6999_video_report.mp4" autoplay loop muted controls playsinline style="width: 100%; height: 100%; object-fit: contain; display: block;"></video>
+      </div>
+    </div>
+
+    <!-- Footer Card -->
+    <div style="margin: 4rem 0 3rem 0; background: var(--ink); color: #fff; padding: 2.5rem; border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+      <div>
+        <h3 style="font-family: var(--display); font-size: 1.6rem; margin: 0 0 0.5rem 0;">
+          Explore the Dynamoid Checkpoint &amp; Artifacts
+        </h3>
+        <p style="margin: 0; color: #a4beba; font-size: 0.88rem; max-width: 620px;">
+          Complete code snapshots, configuration YAMLs, evaluation logs, and model checkpoints.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+        <a href="/#work" class="brief-back-btn">← Back to Selected Work</a>
+        <a href="assets/reports/MEM_GRU_model_6999_report.pdf" target="_blank" rel="noreferrer" class="brief-back-btn" style="background: var(--acid); color: var(--ink);">Evaluation PDF ↗</a>
+        <a href="assets/reports/MEM_GRU_model_6999_journey.pdf" target="_blank" rel="noreferrer" class="brief-back-btn" style="background: var(--cyan); color: var(--ink);">Journey PDF ↗</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const btnPaper = document.getElementById('btn-tab-paper');
+    const btnJourney = document.getElementById('btn-tab-journey');
+    const btnTelemetry = document.getElementById('btn-tab-telemetry');
+    const tabPaper = document.getElementById('content-tab-paper');
+    const tabJourney = document.getElementById('content-tab-journey');
+    const tabTelemetry = document.getElementById('content-tab-telemetry');
+
+    function setTab(activeBtn, activeContent) {
+      [btnPaper, btnJourney, btnTelemetry].forEach(btn => btn.classList.remove('is-active'));
+      [tabPaper, tabJourney, tabTelemetry].forEach(tab => tab.style.display = 'none');
+      activeBtn.classList.add('is-active');
+      activeContent.style.display = 'block';
+    }
+
+    btnPaper.addEventListener('click', () => setTab(btnPaper, tabPaper));
+    btnJourney.addEventListener('click', () => setTab(btnJourney, tabJourney));
+    btnTelemetry.addEventListener('click', () => setTab(btnTelemetry, tabTelemetry));
+  </script>
+</body>
+</html>

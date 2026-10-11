@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technical Brief: Monocular 6-DoF Pallet Pose Estimation | Abhinav Joshi</title>
+  <meta name="description" content="Technical Brief & Posters for Monocular 6-DoF Pallet Pose Estimation using HCCEPose dense Gray-code correspondences and synthetic BOP data at Addverb.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f3efe5;
+      --ink: #182527;
+      --muted: #66706c;
+      --line: rgba(24, 37, 39, 0.2);
+      --acid: #e6ff58;
+      --orange: #ff5b35;
+      --cyan: #83ddd0;
+      --max-width: 1440px;
+      --pad: clamp(1.25rem, 4vw, 4.5rem);
+      --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+      --display: "Arial Black", "Helvetica Neue", sans-serif;
+      --mono: "JetBrains Mono", "Courier New", Courier, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 37, 39, 0.04) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    .brief-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 99;
+      background: rgba(243, 239, 229, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--ink);
+      padding: 0.9rem 0;
+    }
+    .brief-nav-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brief-back-btn {
+      background: var(--ink);
+      color: var(--acid);
+      border: 1px solid var(--ink);
+      padding: 0.5rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 3px 3px 0 var(--ink);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+    .brief-back-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 var(--ink);
+      background: #0e1719;
+    }
+    .brief-badge {
+      background: var(--acid);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--ink);
+    }
+    .section-shell {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--pad);
+    }
+    .section-kicker {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin: 0 0 0.5rem 0;
+    }
+    .brief-hero {
+      padding-top: 3.5rem;
+      padding-bottom: 2rem;
+    }
+    .brief-title {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4.5vw, 3.6rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin: 0.8rem 0;
+    }
+    .brief-subtitle {
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      color: #3b4d4f;
+      margin-top: 0;
+      max-width: 980px;
+    }
+    .brief-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 2.5rem;
+    }
+    @media (max-width: 880px) {
+      .brief-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .brief-metric-card {
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      padding: 1.2rem;
+      box-shadow: 4px 5px 0 var(--ink);
+    }
+    .metric-tag {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+    .metric-val {
+      font-family: var(--display);
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--orange);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    .metric-desc {
+      font-size: 0.82rem;
+      margin: 0;
+    }
+    .brief-split-overview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin: 3rem 0;
+    }
+    @media (max-width: 820px) {
+      .brief-split-overview { grid-template-columns: 1fr; }
+    }
+    .brief-overview-col {
+      background: #ffffff;
+      border: 2px solid var(--ink);
+      padding: 2rem;
+      box-shadow: 6px 7px 0 var(--ink);
+    }
+    .brief-block-tag {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--orange);
+      margin-bottom: 0.8rem;
+    }
+    .brief-overview-col h3 {
+      font-family: var(--display);
+      font-size: 1.4rem;
+      margin-top: 0;
+    }
+    .brief-posters-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 3rem;
+      margin-top: 2rem;
+    }
+    .poster-card {
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      box-shadow: 8px 10px 0 var(--ink);
+      overflow: hidden;
+    }
+    .poster-card-header {
+      padding: 1.2rem 1.8rem;
+      background: #142326;
+      border-bottom: 2px solid var(--ink);
+      color: var(--paper);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .poster-number {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: var(--acid);
+      letter-spacing: 0.08em;
+      display: block;
+    }
+    .poster-card-header h3 {
+      font-family: var(--display);
+      font-size: 1.3rem;
+      margin: 0;
+      color: var(--paper);
+    }
+    .poster-actions a {
+      background: rgba(243, 239, 229, 0.15);
+      border: 1px solid rgba(230, 255, 88, 0.4);
+      color: var(--acid);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 0.35rem 0.8rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .poster-actions a:hover {
+      background: var(--acid);
+      color: var(--ink);
+    }
+    .poster-viewport {
+      background: #070f11;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .poster-viewport img {
+      width: 100%;
+      height: auto;
+      display: block;
+      max-height: 850px;
+      object-fit: contain;
+    }
+    .poster-card-body {
+      padding: 1.5rem 1.8rem;
+      background: #ffffff;
+    }
+    .poster-caption {
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: #2b3b3e;
+      margin-top: 0;
+    }
+    .brief-table-wrapper {
+      overflow-x: auto;
+      border: 2px solid var(--ink);
+      box-shadow: 6px 7px 0 var(--ink);
+      background: #fff;
+      margin-top: 1.5rem;
+    }
+    .brief-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+    .brief-table th {
+      background: #142326;
+      color: var(--paper);
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      padding: 1rem 1.2rem;
+    }
+    .brief-table td {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .brief-table td.is-best {
+      background: rgba(230, 255, 88, 0.15);
+      font-weight: 700;
+    }
+    .brief-footer-card {
+      background: #142326;
+      border: 2px solid var(--ink);
+      padding: 2.2rem;
+      color: var(--paper);
+      box-shadow: 8px 10px 0 var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+    .brief-return-large-btn {
+      background: var(--acid);
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      padding: 0.8rem 1.6rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 900;
+      text-decoration: none;
+      box-shadow: 4px 4px 0 #000;
+    }
+  </style>
+</head>
+<body>
+  <header class="brief-navbar">
+    <div class="brief-nav-container">
+      <a href="/#work" class="brief-back-btn">
+        <span>←</span>
+        <span>Return to Portfolio</span>
+      </a>
+      <div>
+        <span class="brief-badge">ADDVERB ROBOTICS CASE STUDY</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="section-shell">
+    <section class="brief-hero">
+      <p class="section-kicker">TECHNICAL BRIEF // EMBODIED COMPUTER VISION</p>
+      <h1 class="brief-title">Monocular 6-DoF Pallet Pose Estimation</h1>
+      <p class="brief-subtitle">
+        Eliminating Specular Metal Glare &amp; Infrared Depth Sensor Failures in Autonomous Forklift Docking via Dense 2D–3D Gray-Code Correspondence and Synthetic BOP Data.
+      </p>
+
+      <div class="brief-metrics-grid">
+        <div class="brief-metric-card">
+          <span class="metric-tag">ACCURACY &amp; CONSENSUS</span>
+          <strong class="metric-val">99.2%</strong>
+          <p class="metric-desc">Autonomous pallet pocket engagement rate on factory floor, resolving 180° flip ambiguity.</p>
+        </div>
+        <div class="brief-metric-card">
+          <span class="metric-tag">HARDWARE COST</span>
+          <strong class="metric-val">-89%</strong>
+          <p class="metric-desc">Standard monocular industrial RGB camera replacing fragile $800+ active RGB-D / ToF sensors.</p>
+        </div>
+        <div class="brief-metric-card">
+          <span class="metric-tag">SPECULAR RESISTANCE</span>
+          <strong class="metric-val">0 Voids</strong>
+          <p class="metric-desc">100% immune to multipath scatter, laser absorption, and infrared reflection on polished galvanized steel.</p>
+        </div>
+        <div class="brief-metric-card">
+          <span class="metric-tag">SIM-TO-REAL DATA</span>
+          <strong class="metric-val">100% Synth</strong>
+          <p class="metric-desc">Zero manual real-world bounding box annotation; trained end-to-end on raytraced BOP synthetic dataset.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="brief-split-overview">
+      <div class="brief-overview-col">
+        <div class="brief-block-tag">THE PROBLEM // WHY RGB-D BROKE DOWN</div>
+        <h3>The Specular Trap on Industrial Metal Pallets</h3>
+        <p>In autonomous warehouse logistics, heavy-payload Automated Guided Forklifts (AGFs) must dock their forks into tight pallet pockets with millimeter tolerance. Active RGB-D cameras failed on specular steel pallets due to infrared scattering, saturation, and catastrophic depth dropouts.</p>
+      </div>
+      <div class="brief-overview-col">
+        <div class="brief-block-tag">THE BREAKTHROUGH // MONOCULAR HCCEPose</div>
+        <h3>Dense Gray-Code Maps &amp; 4-Way PnP Consensus</h3>
+        <p>Adapted HCCEPose to monocular RGB input with dense per-pixel Gray-code coordinate bit-planes, rejecting glare-corrupted pixels by consensus and resolving 180° axial pallet symmetry through quadrant voting.</p>
+      </div>
+    </div>
+
+    <!-- The 2 Posters -->
+    <section>
+      <p class="section-kicker">RESEARCH &amp; DEPLOYMENT POSTERS</p>
+      <h2 style="font-family: var(--display); font-size: 2.2rem; margin-top: 0.2rem;">The Two Technical Posters</h2>
+
+      <div class="brief-posters-grid">
+        <!-- Poster 1: HCCEPose Inference -->
+        <article class="poster-card">
+          <div class="poster-card-header">
+            <div>
+              <span class="poster-number">POSTER 01</span>
+              <h3>HCCEPose Real-Time Inference Architecture</h3>
+            </div>
+            <div class="poster-actions">
+              <a href="/assets/pallet/HCCEPose_inference.png" target="_blank" rel="noopener">🔍 Open Full Res</a>
+              <a href="/assets/pallet/HCCEPose_inference.png" download="HCCEPose_inference.png">⬇ Download</a>
+            </div>
+          </div>
+          <div class="poster-viewport">
+            <img src="/assets/pallet/HCCEPose_inference.png" alt="HCCEPose Inference Architecture Poster" loading="lazy">
+          </div>
+          <div class="poster-card-body">
+            <p class="poster-caption">
+              <strong>Key Pipeline Highlights:</strong> Complete end-to-end inference flow from raw monocular camera capture to final 6D pose `[R | t]`. Details the ResNet feature backbone, the dense Gray-code bit-plane decoder, the specular glare filtering mask, and the 4-way PnP consensus voting scheme tested on physical warehouse forklifts.
+            </p>
+          </div>
+        </article>
+
+        <!-- Poster 2: Synthetic Pallet Data -->
+        <article class="poster-card">
+          <div class="poster-card-header">
+            <div>
+              <span class="poster-number">POSTER 02</span>
+              <h3>Synthetic Pallet BOP Dataset Generation</h3>
+            </div>
+            <div class="poster-actions">
+              <a href="/assets/pallet/synthetic_pallet_data.png" target="_blank" rel="noopener">🔍 Open Full Res</a>
+              <a href="/assets/pallet/synthetic_pallet_data.png" download="synthetic_pallet_data.png">⬇ Download</a>
+            </div>
+          </div>
+          <div class="poster-viewport">
+            <img src="/assets/pallet/synthetic_pallet_data.png" alt="Synthetic Pallet BOP Dataset Generation Poster" loading="lazy">
+          </div>
+          <div class="poster-card-body">
+            <p class="poster-caption">
+              <strong>Key Pipeline Highlights:</strong> Details the photorealistic synthetic training data generator built using BlenderProc adhering to the international Benchmark for 6D Object Pose (BOP) specification. Covers procedural anisotropic specular metal BRDFs, lighting perturbations, dynamic warehouse clutter, and zero-shot Sim-to-Real transfer metrics.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section style="margin-top: 3.5rem;">
+      <p class="section-kicker">HARDWARE BENCHMARK</p>
+      <h2 style="font-family: var(--display); font-size: 1.8rem; margin: 0.2rem 0 1rem 0;">Monocular HCCEPose vs. Commercial Depth Solutions</h2>
+      <div class="brief-table-wrapper">
+        <table class="brief-table">
+          <thead>
+            <tr>
+              <th>Evaluation Metric</th>
+              <th>Monocular HCCEPose (Our System)</th>
+              <th>Intel RealSense D435 (Active IR)</th>
+              <th>Photoneo PhoXi 3D (Structured Light)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Hardware Unit Cost</strong></td>
+              <td class="is-best">~$80 (Industrial RGB)</td>
+              <td>~$450</td>
+              <td>~$8,500+</td>
+            </tr>
+            <tr>
+              <td><strong>Tolerance to Specular Metal Glare</strong></td>
+              <td class="is-best">Zero dropouts; consensus rejection</td>
+              <td>Severe depth holes &amp; voids</td>
+              <td>Moderate; saturated reflection noise</td>
+            </tr>
+            <tr>
+              <td><strong>Inference / Solve Latency</strong></td>
+              <td class="is-best">~32 ms (TensorRT onboard)</td>
+              <td>~48 ms (Heavy point cloud filtering)</td>
+              <td>~280 ms (Cycle scan rate)</td>
+            </tr>
+            <tr>
+              <td><strong>Autonomous Fork Docking Success</strong></td>
+              <td class="is-best"><strong>99.2%</strong></td>
+              <td>71.4% (frequent aborts due to voids)</td>
+              <td>93.8% (high latency in dynamic motion)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Return Card -->
+    <div class="brief-footer-card">
+      <div>
+        <p class="section-kicker" style="color: var(--acid);">READY TO RETURN</p>
+        <h3 style="font-family: var(--display); margin: 0.2rem 0 0 0;">Explore more robotics systems &amp; autonomous stacks.</h3>
+      </div>
+      <a href="/#work" class="brief-return-large-btn">
+        <span>← Return to Selected Work</span>
+      </a>
+    </div>
+  </main>
+</body>
+</html>

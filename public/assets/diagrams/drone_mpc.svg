@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradDrone" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a121e"/>
+      <stop offset="100%" stop-color="#111c2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="340" rx="12" fill="url(#bgGradDrone)"/>
+
+  <!-- Badges -->
+  <rect x="24" y="22" width="165" height="26" rx="13" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1"/>
+  <text x="36" y="39" fill="#7dd3fc" font-family="system-ui, sans-serif" font-size="11" font-weight="600">AERIAL OPTIMAL CONTROL</text>
+
+  <rect x="199" y="22" width="145" height="26" rx="13" fill="#2563eb" fill-opacity="0.25" stroke="#3b82f6" stroke-width="1"/>
+  <text x="211" y="39" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="11" font-weight="600">AGILICIOUS (UZH) MPC</text>
+
+  <rect x="354" y="22" width="165" height="26" rx="13" fill="#059669" fill-opacity="0.25" stroke="#10b981" stroke-width="1"/>
+  <text x="366" y="39" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="11" font-weight="600">VISION NAVIGATION RL</text>
+
+  <!-- Graphic: Quadrotor navigating through cluttered obstacles -->
+  <!-- Obstacles (Pillars / Walls) -->
+  <rect x="170" y="80" width="24" height="150" rx="4" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+  <rect x="310" y="60" width="28" height="120" rx="4" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+  <rect x="420" y="120" width="24" height="110" rx="4" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+
+  <!-- Flight Path -->
+  <path d="M 60 180 C 130 180, 150 240, 240 220 C 300 200, 310 90, 380 90 C 430 90, 460 170, 530 170" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Quadrotor Silhouette at (240, 220) -->
+  <g transform="translate(240, 220)">
+    <!-- Drone Arms -->
+    <line x1="-22" y1="-12" x2="22" y2="12" stroke="#e2e8f0" stroke-width="2.5"/>
+    <line x1="-22" y1="12" x2="22" y2="-12" stroke="#e2e8f0" stroke-width="2.5"/>
+    <!-- Rotors -->
+    <ellipse cx="-22" cy="-12" rx="10" ry="3" fill="#38bdf8" fill-opacity="0.6"/>
+    <ellipse cx="22" cy="12" rx="10" ry="3" fill="#38bdf8" fill-opacity="0.6"/>
+    <ellipse cx="-22" cy="12" rx="10" ry="3" fill="#38bdf8" fill-opacity="0.6"/>
+    <ellipse cx="22" cy="-12" rx="10" ry="3" fill="#38bdf8" fill-opacity="0.6"/>
+    <!-- Body & Camera / Depth Ray -->
+    <circle cx="0" cy="0" r="8" fill="#0284c7" stroke="#38bdf8" stroke-width="2"/>
+    <!-- FOV Cone -->
+    <path d="M 5 0 L 55 -25 L 55 25 Z" fill="#38bdf8" fill-opacity="0.2"/>
+  </g>
+
+  <!-- Details Card -->
+  <g transform="translate(30, 250)">
+    <rect width="540" height="65" rx="8" fill="#0b1324" stroke="#1e293b" stroke-width="1"/>
+    <text x="16" y="24" fill="#94a3b8" font-family="monospace" font-size="10.5">Stack: acados MPC core in agilicious (fixed controller solver-state corruption bug).</text>
+    <text x="16" y="44" fill="#34d399" font-family="monospace" font-size="10.5">RL: Cluttered vision navigation (VAE depth + GRU memory, async PPO) on consumer RTX 4060.</text>
+  </g>
+</svg>
