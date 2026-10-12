@@ -98,7 +98,7 @@ export const JOURNEY_MILESTONES: JourneyMilestone[] = [
   {
     id: 'addverb',
     institution: 'Addverb Technologies',
-    role: 'Robotics Intern — Mobile & Advanced Robotics',
+    role: 'Robotics Researcher — Mobile & Advanced Robotics',
     period: '2026.07 — PRESENT',
     isLive: true,
     category: 'ADVANCED ROBOTICS & HUMANOIDS',

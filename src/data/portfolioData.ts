@@ -327,7 +327,7 @@ export const publications: PublicationItem[] = [
 export const experiences: ExperienceItem[] = [
   {
     id: 'exp-addverb',
-    role: 'Robotics Intern — Mobile Robotics & Advanced Robotics Teams',
+    role: 'Robotics Researcher — Mobile Robotics & Advanced Robotics Teams',
     company: 'Addverb Technologies',
     companyUrl: 'https://addverb.com',
     period: 'Jul 2026 – Present',

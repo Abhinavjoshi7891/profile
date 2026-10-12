@@ -87,7 +87,7 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ onShowToast }) => 
           </div>
           <div className="career-role">
             <p>ADDVERB TECHNOLOGIES</p>
-            <h3>Robotics Intern — Mobile &amp; Advanced Robotics</h3>
+            <h3>Robotics Researcher — Mobile &amp; Advanced Robotics</h3>
           </div>
           <div className="career-story">
             <p>
